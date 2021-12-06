@@ -1,8 +1,8 @@
 package com.idemia.zio
+package com.idemia.zio
 
-import zio._
-import zio.console._
-
+import zio.console.{Console, putStrLn}
+import zio.{ExitCode, IO, Ref, Schedule, Task, UIO, URIO, ZIO}
 
 object Sandbox extends zio.App with TestRuntime {
 
@@ -27,7 +27,8 @@ object Sandbox extends zio.App with TestRuntime {
 
   //From Scala values
   val zoption: IO[Option[Nothing], Int] = ZIO.fromOption(Some(2))
-  val zoption2: ZIO[Any, String, Int] = zoption.mapError(_ => "It wasn't there!")
+  val zoption2: ZIO[Any, String, Int] =
+    zoption.mapError(_ => "It wasn't there!")
 
   //from Either
   val zeither: IO[Nothing, String] = ZIO.fromEither(Right("Success!"))
@@ -51,7 +52,7 @@ object Sandbox extends zio.App with TestRuntime {
       future.map(_ => "Goodbye!")
     }
 
- //from Side-Effects
+  //from Side-Effects
 
 //  Synchronous
   import scala.io.StdIn
@@ -64,27 +65,23 @@ object Sandbox extends zio.App with TestRuntime {
   val getStrLn2: IO[IOException, String] =
     ZIO.effect(StdIn.readLine()).refineToOrDie[IOException]
 
-
-
 //  Asynchronous
 
   case class User()
   case class AuthError()
 
   object legacy {
-    def login(
-               onSuccess: User => Unit,
-               onFailure: AuthError => Unit): Unit = println("Failure!")
+    def login(onSuccess: User => Unit, onFailure: AuthError => Unit): Unit =
+      println("Failure!")
   }
 
   val login: IO[AuthError, User] =
     IO.effectAsync[AuthError, User] { callback =>
       legacy.login(
         user => callback(IO.succeed(user)),
-        err  => callback(IO.fail(err))
+        err => callback(IO.fail(err))
       )
     }
-
 
   // from blocking Side-Effects
 
@@ -94,8 +91,6 @@ object Sandbox extends zio.App with TestRuntime {
     effectBlocking(Thread.sleep(Long.MaxValue))
 
 //  The resulting effect will be executed on a separate thread pool designed specifically for blocking effects.
-
-
 
 //Basic Operations
 
@@ -110,56 +105,46 @@ object Sandbox extends zio.App with TestRuntime {
   val sequenced: ZIO[Console, Throwable, Unit] =
     getStrLn.flatMap(input => putStrLn(s"You entered: $input"))
 
-
   //For Comperhensions
   //ZIO implements both map and flatMap
 
   val program: ZIO[Console, Throwable, Unit] =
     for {
-      _    <- putStrLn("Hello! What is your name?")
+      _ <- putStrLn("Hello! What is your name?")
       name <- getStrLn
-      _    <- putStrLn(s"Hello, ${name}, welcome to ZIO!")
+      _ <- putStrLn(s"Hello, ${name}, welcome to ZIO!")
     } yield ()
-
-
 
   //Error handling
 
   //again UIO inffaliable
- //  ZIO[R, E, A] => ZIO[R, Nothing, Either[E, A]]
+  //  ZIO[R, E, A] => ZIO[R, Nothing, Either[E, A]]
 
   val zeither2: UIO[Either[String, Int]] =
     IO.fail("Uh oh!").either
 
   //  Catching all errors
   val catchAll: IO[IOException, Array[Byte]] =
-    openFile("primary.json").catchAll(_ =>
-      openFile("backup.json"))
+    openFile("primary.json").catchAll(_ => openFile("backup.json"))
 
-
-
- //  Fallback
+  //  Fallback
 //  You can try one effect, or, if it fails, try another effect, with the orElse combinator:
 
   val primaryOrBackupData: IO[IOException, Array[Byte]] =
     openFile("primary.data").orElse(openFile("backup.data"))
 
-
-
 //Folding
-lazy val DefaultData: Array[Byte] = Array(0, 0)
+  lazy val DefaultData: Array[Byte] = Array(0, 0)
 
   val primaryOrDefaultData: UIO[Array[Byte]] =
-    openFile("primary.data").fold(
-      _    => DefaultData,
-      data => data)
+    openFile("primary.data").fold(_ => DefaultData, data => data)
 
   // you can effectfully handle both failure and success, by supplying an effectful (but still pure) handler for each case:
   val primaryOrSecondaryData: IO[IOException, Array[Byte]] =
     openFile("primary.data").foldM(
-      _    => openFile("secondary.data"),
-      data => ZIO.succeed(data))
-
+      _ => openFile("secondary.data"),
+      data => ZIO.succeed(data)
+    )
 
 //Retrying effects
 
@@ -168,16 +153,11 @@ lazy val DefaultData: Array[Byte] = Array(0, 0)
   val retriedOpenFile: ZIO[Clock, IOException, Array[Byte]] =
     openFile("primary.data").retry(Schedule.recurs(5))
 
-
-
-
-
-
   /*  Ref
     Ref[A] models a mutable reference to a value of type A.
     The two basic operations are set, which fills the Ref with a new value, and get, which retrieves its current content.
     All operations on a Ref are atomic and thread-safe, providing a reliable foundation for synchronizing concurrent programs.
-    */
+   */
 
   val refValue: ZIO[Any, Nothing, Ref[Int]] = for {
     ref <- Ref.make(100)
@@ -197,7 +177,7 @@ lazy val DefaultData: Array[Byte] = Array(0, 0)
       loop
     }
 
- private def openFile(str: String): IO[IOException ,Array[Byte]] = ???
+  private def openFile(str: String): IO[IOException, Array[Byte]] = ???
 
   override def run(args: List[String]): URIO[zio.ZEnv, ExitCode] = ???
 }

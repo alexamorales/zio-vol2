@@ -1,7 +1,7 @@
 package com.idemia.zio
-package answers
+package com.idemia.zio.com.idemia.zio.answers
 
-import answers.ErrorRecovery.myAppLogic
+import com.idemia.zio.com.idemia.zio.answers.ErrorRecovery.myAppLogic
 
 import zio._
 import zio.console.Console

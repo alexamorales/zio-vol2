@@ -1,4 +1,5 @@
 package com.idemia.zio
+package com.idemia.zio
 
 import zio._
 import zio.console.Console
